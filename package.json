@@ -1,0 +1,23 @@
+{
+  "name": "nodepicserver",
+  "version": "1.0.0",
+  "description": "nodeJs写的一个图片服务器",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "diskspace": "^2.0.0",
+    "express": "^4.16.3",
+    "fs": "0.0.1-security",
+    "md5": "^2.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/ztwlla/NodePicServer.git"
+  },
+  "author": "wlla",
+  "license": "ISC"
+}
