@@ -43,6 +43,8 @@ module.exports = {
     save_max : m_nPicSavMax,
     last_post : m_nLastPicPostTime,
     last_save : m_nLastPicSaveTime,
+    free_space : m_nFreeBytes,
+    total_space : m_nTotalBytes,
     server_ip : m_strIP,
     server_port : m_strPort,
     server_home : m_strRootPath,
@@ -81,57 +83,74 @@ module.exports.add_refuse = function (bytes) {
         m_nRefBytes = bytes;
     }
 };
+  
+//上传状态
+function upstate(o) {
+    //获取当前磁盘空间
+    var disk_path = o.server_home[0];
+    console.log('store disk is ' + disk_path);
+    diskspace.check(disk_path, function (err, result) {
+        m_nTotalBytes = result.total;
+        m_nFreeBytes = result.free;
+    });
+
+    //发送的数据
+    var data = {
+        server_ip : o.server_ip,
+        server_port : o.server_port,
+        get_num : o.get_num,
+        get_success : o.get_success,
+        post_num : o.post_num,
+        post_success : o.post_success,
+        saving_num : o.saving_num,
+        save_max : o.save_max,
+        last_post : o.last_post,
+        last_save : o.last_save,
+        free_space : m_nFreeBytes,
+        total_space : m_nTotalBytes,
+    }
+    var content = qs.stringify(data);  
+    
+    var options = {  
+        hostname: o.center_ip,  
+        port: o.center_port,  
+        path: '/imageCenter/update',  
+        method: 'POST',
+        headers: {  
+            'Content-Type': 'application/x-www-form-urlencoded'  
+        }
+    }; 
+    
+    // 发送请求
+    var req = http.request(options, function (res) {  
+        console.log('response STATUS: ' + res.statusCode);  
+        //console.log('HEADERS: ' + JSON.stringify(res.headers));  
+        res.setEncoding('utf8');  
+        res.on('data', function (chunk) {  
+            console.log('response: ' + chunk);  
+        });  
+    });  
+    
+    req.on('error', function (e) {  
+        console.log('problem with request: ' + e.message);  
+    });  
+    
+    // write data to request body  
+    req.write(content);
+    
+    req.end();
+
+};
 
 module.exports.run = function () {
+    //获取当前磁盘空间
     var disk_path = this.server_home[0];
-    console.log('store disk is %c', disk_path);
-    setInterval(function() {
-        //获取当前磁盘空间
-        diskspace.check(disk_path, function (err, result) {
-            m_nTotalBytes = result.total;
-            m_nFreeBytes = result.free;
-        });
+    console.log('store disk is ' + disk_path);
+    diskspace.check(disk_path, function (err, result) {
+        m_nTotalBytes = result.total;
+        m_nFreeBytes = result.free;
+    });
 
-        //发送的数据
-        var data = new Object();
-        data.get_num = m_nGetNum;
-        data.get_success = m_nGetSucess;
-        data.post_num = m_nPostNum;
-        data.post_success = m_nPostSucess;
-        data.saving_num = m_nPicSavNum;
-        data.save_max = m_nPicSavMax;
-        data.last_post = m_nLastPicPostTime;
-        data.last_save = m_nLastPicSaveTime; 
-        var content = qs.stringify(data);  
-          
-        var options = {  
-            hostname: m_strSIP,  
-            port: m_strSPort,  
-            path: '/imageCenter/update',  
-            method: 'POST',
-            headers: {  
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'  
-            }
-        }; 
-        
-        // 发送请求
-        var req = http.request(options, function (res) {  
-            console.log('response STATUS: ' + res.statusCode);  
-            //console.log('HEADERS: ' + JSON.stringify(res.headers));  
-            res.setEncoding('utf8');  
-            res.on('data', function (chunk) {  
-                console.log('response: ' + chunk);  
-            });  
-        });  
-          
-        req.on('error', function (e) {  
-            console.log('problem with request: ' + e.message);  
-        });  
-          
-        // write data to request body  
-        req.write(content);  
-          
-        req.end();
-
-    }, 1000);
+    //上传状态定时器
+    setInterval(upstate, 10000, this);
 };
