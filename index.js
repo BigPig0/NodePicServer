@@ -1,9 +1,24 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var fs = require("fs");
+var path = require("path");
 var md5tool=require("md5");
 var qs = require('querystring');
 var os = require('os');
+var moment = require('moment');
+
+//递归创建目录 同步方法  
+function mkdirsSync(dirname) {  
+  //console.log(dirname);  
+  if (fs.existsSync(dirname)) {  
+      return true;  
+  } else {  
+      if (mkdirsSync(path.dirname(dirname))) {  
+          fs.mkdirSync(dirname);  
+          return true;  
+      }  
+  }  
+}  
 
 //读取命令行参数,配置文件
 var conf_file = process.argv[2];
@@ -32,11 +47,24 @@ app.use(bodyParser.urlencoded());
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
   console.log("%s,%s,%s",req.originalUrl,req.query.name,req.query.type);
+  state.
+  //jiancha
+  if(state.saving_num >= state.save_max) {
+    console.log("saveing num is ", state.saving_num);
+    res.status(400).send("saving file is max");
+    return;
+  }
+  if (state.free_space < 1024*1024*1024) {
+    console.log("free space is ",state.free_space);
+    res.status(400).send("free space is "+state.free_space);
+    return;
+  }
+
   // 请求里面的原始数据
   var reqData = [];
   var size = 0;
   req.on('data', function (data) {
-    console.log('>>>req on');
+    //console.log('>>>req on');
     reqData.push(data);
     size += data.length;
   });
@@ -46,44 +74,60 @@ app.post('/imageServer/image', function(req, res) {
     var name = req.query.name;
     var type = req.query.type;
     var md5  = md5tool(name);
-    var today = new Date;
-    var year = today.getFullYear() + 1970;
-    var month = today.getMonth() + 1;
-    var date = today.getDate();
+    var today = moment();
+    var ym = today.format('YYYYMM');
+    var ymd = today.format('YYYYMMDD');
     var type_folder = type=='1'?'volation':'record';
-    var path = config.server_home + '\\images\\' + type_folder + '\\'
-       + year + month + '\\'
-       + year + month + date + '\\';
+    var path = config.rootPath + '\\images\\' + type_folder + '\\' + ym + '\\' + ymd + '\\';
     for (var m=0; m<5; ++m)
     {
       path = path + md5[m] + "\\";
     }
   
     var suffix = name.split(".")[1];
-    var file_name = type_folder << "_" << year << month << date << md5 << suffix;
-    path = path + file_name;
-    console.log("save file %s", path);
+    var file_name = type_folder + "_" + ymd + md5 + '.' + suffix;
     res.send(file_name);
   
-    var options = { encoding: 'ignored' };
-    var fd = fs.writeFile(path, req.reqData, options, function (err,bite,data) {
-      if (!err){
-          console.log('文件写入成功');
+    state.saving_num++;
+    mkdirsSync(path);
+    path = path + file_name;
+    console.log("save file %s", path);
+    var fd = fs.writeFile(path, req.reqData, function (err, fd) {
+      if (err){
+          console.log('文件写入shibai');
+          throw err;
       };
-      fs.close(fd,function (err) {
-        if (!err){
-            console.log('文件已关闭');
-        };
-      })
+      state.saving_num--;
     });
   });
 })
 
 /** 图片访问请求 */
 app.get('/imageServer/image', function (req, res) {
-   console.log("%s,%s",req.originalUrl,req.query.name);
-   console.log(req.body);
-   res.send('Hello World');
+   console.log(req.originalUrl);
+   state.get_num++;
+   //console.log(req.body);
+   //var parsename = sscanf(req.query.name, "%s_%6s%2s%5s");
+   var twostr = req.query.name.split('_');
+   if(twostr.length != 2 || twostr[1].length < 13) {
+     res.status(400).send("not found");
+     return;
+   }
+
+   var szType = twostr[0];
+   var szYearMonth = twostr[1].slice(0,6);
+   var szDay = twostr[1].slice(6,8);
+   var szMD5 = twostr[1].slice(8);
+   var strPicPath = config.rootPath + "\\images\\" + szType + "\\" + szYearMonth + "\\" + szYearMonth + szDay + "\\";
+   for (var m=0; m<5; ++m)
+    {
+      strPicPath = strPicPath + szMD5[m] + "\\";
+    }
+    strPicPath += req.query.name;
+   //res.send('Hello World');
+   console.log(strPicPath);
+   res.sendFile(strPicPath);
+   state.get_success++;
 })
 
 /** 图片服务器状态提交 */
@@ -92,7 +136,7 @@ app.post('/imageCenter/update',function (req, res) {
   //console.log(req.body);
   pic_center_data[req.connection.remoteAddress] = req.body;
   pic_center_data[req.connection.remoteAddress].server_ip = req.connection.remoteAddress;
-  console.log(pic_center_data);
+  //console.log(pic_center_data);
   res.send('update ok');
 
 })
@@ -100,9 +144,13 @@ app.post('/imageCenter/update',function (req, res) {
 /** 图片服务器状态获取 */
 app.get('/imageCenter/display',function (req, res) {
     console.log("%s",req.originalUrl);
-    var data = JSON.stringify(pic_center_data);
-    console.log(data);
-    res.send(data);
+    var st = { root : []};
+    for(serip in pic_center_data) {
+      st.root.push(pic_center_data[serip]);
+    }
+    var data = JSON.stringify(st);
+    //console.log(data);
+    res.status(0).send(data);
 })
  
 var server = app.listen(config.port, function () {

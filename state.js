@@ -1,6 +1,7 @@
 var diskspace = require('diskspace');
 var http = require('http');
 var qs = require('querystring');
+var moment = require('moment');
 
 //访问图片统计
 var    m_nGetNum = 0;        //访问图片的请求数
@@ -53,32 +54,24 @@ module.exports = {
 };
 
 module.exports.add_pic = function (bytes) {
-    var today = new Date;
-    var year = today.getFullYear() + 1970;
-    var month = today.getMonth() + 1;
-    var date = today.getDate();
-    var todate = year*10000 + month*100 + date;
-    if (m_nDate == todate) {
+    var today = moment().format('YYYYMMDD');
+    if (m_nDate == today) {
         ++m_nPicNum;
         m_nPicBytes += bytes;
     } else {
-        m_nDate = todate;
+        m_nDate = today;
         m_nPicNum = 1;
         m_nPicBytes = bytes;
     }
 };
 
 module.exports.add_refuse = function (bytes) {
-    var today = new Date;
-    var year = today.getFullYear() + 1970;
-    var month = today.getMonth() + 1;
-    var date = today.getDate();
-    var todate = year*10000 + month*100 + date;
-    if (m_nDate == todate) {
+    var today = moment().format('YYYYMMDD');
+    if (m_nDate == today) {
         ++m_nRefNum;
         m_nRefBytes += bytes;
     } else {
-        m_nDate = todate;
+        m_nDate = today;
         m_nRefNum = 1;
         m_nRefBytes = bytes;
     }
@@ -90,8 +83,8 @@ function upstate(o) {
     var disk_path = o.server_home[0];
     console.log('store disk is ' + disk_path);
     diskspace.check(disk_path, function (err, result) {
-        m_nTotalBytes = result.total;
-        m_nFreeBytes = result.free;
+        o.total_space = result.total;
+        o.free_space = result.free;
     });
 
     //发送的数据
@@ -106,8 +99,8 @@ function upstate(o) {
         save_max : o.save_max,
         last_post : o.last_post,
         last_save : o.last_save,
-        free_space : m_nFreeBytes,
-        total_space : m_nTotalBytes,
+        free_space : o.free_space,
+        total_space : o.total_space,
     }
     var content = qs.stringify(data);  
     
@@ -146,11 +139,13 @@ module.exports.run = function () {
     //获取当前磁盘空间
     var disk_path = this.server_home[0];
     console.log('store disk is ' + disk_path);
+
+    var o = this;
     diskspace.check(disk_path, function (err, result) {
-        m_nTotalBytes = result.total;
-        m_nFreeBytes = result.free;
+        o.total_space = result.total;
+        o.free_space = result.free;
     });
 
     //上传状态定时器
-    setInterval(upstate, 10000, this);
+    setInterval(upstate, 60000, this);
 };
