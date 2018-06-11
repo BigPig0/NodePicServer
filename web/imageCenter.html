@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>图片服务器中心</title>
+  <link rel="stylesheet" href="lib/bootstrap.min.css"/>
+  <style>
+    tr{
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body ng-app="myApp" ng-controller="myCtrl">
+  <div style="width: 80%;margin: 20px auto;">
+    <table class="table">
+      <tr>
+        <th>序号</th>
+        <th>IP</th>
+        <th>Port</th>
+        <th>看图</th>
+        <th>看图ok</th>
+        <th>推图</th>
+        <th>推图ok</th>
+        <th>正在保存</th>
+        <th>推图时间</th>
+        <th>保存时间</th>
+        <th>日期</th>
+        <th>推图数量</th>
+        <th>推图大小</th>
+        <th>拒绝数量</th>
+        <th>拒绝大小</th>
+        <th>磁盘剩余空间</th>
+        <th>磁盘总空间</th>
+      </tr>
+      <tbody ng-repeat="item in data track by $index">
+          <tr>
+            <td>{{$index+1}}</td>
+            <td>{{item.server_ip}}</td>
+            <td>{{item.server_port}}</td>
+            <td>{{item.get_num}}</td>
+            <td>{{item.get_success}}</td>
+            <td>{{item.post_num}}</td>
+            <td>{{item.post_success}}</td>
+            <td>{{item.saving_num}}</td>
+            <td>{{item.last_post}}</td>
+            <td>{{item.last_save}}</td>
+            <td>{{item.date}}</td>
+            <td>{{item.pic_num}}</td>
+            <td>{{formatSize(item.pic_bytes)}}</td>
+            <td>{{item.ref_num}}</td>
+            <td>{{formatSize(item.ref_bytes)}}</td>
+            <td>{{formatSize(item.free_space)}}</td>
+            <td>{{formatSize(item.total_space)}}</td>
+          </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+<script src="lib/angular.min.js"></script>
+<script src="lib/jquery-1.11.3.min.js"></script>
+<script>
+  var url = 'http://localhost:81/imageCenter/display';
+  var app = angular.module('myApp', []);
+  app.controller('myCtrl', function($scope,$http) {
+    $http({
+        method: 'GET',
+        url: url,
+        dataType: 'json',
+    }).then(function successCallback(response) {
+        $scope.data = response.data.root;
+    }, function errorCallback(response) {
+        alert(response);
+    });
+
+    $scope.formatSize = function (size) {
+        var fsize;
+        var remainder = size%1024;
+        var quotient = parseInt(size / 1024);
+        fsize = "" + remainder + "B";
+        if(quotient == 0)
+            return fsize;
+
+        remainder = quotient%1024;
+        quotient =  parseInt(quotient/1024);
+        fsize = "" + remainder + "K," + fsize;
+        if(quotient == 0)
+            return fsize;
+
+        remainder = quotient%1024;
+        quotient =  parseInt(quotient/1024);
+        fsize = "" + remainder + "M," + fsize;
+        if(quotient == 0)
+            return fsize;
+
+        remainder = quotient%1024;
+        quotient =  parseInt(quotient/1024);
+        fsize = "" + remainder + "G," + fsize;
+        if(quotient == 0)
+            return fsize;
+
+        fsize = "" + quotient + "T," + fsize;
+        return fsize;
+    }
+  });
+
+  
+</script>

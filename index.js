@@ -32,7 +32,8 @@ state.server_port = config.port;
 state.server_home = config.rootPath;
 state.center_ip = config.centerIP;
 state.center_port = config.centerPort;
-state.run();
+if(config.centerIP != null)
+  state.run();
 
 //图片服务器中心统计数据
 var pic_center_data = {};
@@ -46,7 +47,7 @@ app.use(bodyParser.urlencoded());
 
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
-  console.log("%s,%s,%s",req.originalUrl,req.query.name,req.query.type);
+  //console.log("%s,%s,%s",req.originalUrl,req.query.name,req.query.type);
   state.post_num++;
   state.last_post = moment().format('hh:mm:ss');
 
@@ -88,12 +89,12 @@ app.post('/imageServer/image', function(req, res) {
     state.saving_num++;
     mkdirsSync(path);
     path = path + file_name;
-    console.log("save file %s", path);
+    //console.log("save file %s", path);
     state.last_save = moment().format('hh:mm:ss');
     var fd = fs.writeFile(path, picData, function (err) {
       state.post_success++;
       if (err){
-          console.log('文件写入shibai',err.message);
+          console.log('文件写入失败',err.message);
       };
       state.saving_num--; //正在保存任务数
       state.add_pic(picData.length);  //成功保存的图片

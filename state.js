@@ -109,6 +109,7 @@ function upstate(o) {
         free_space : m_nFreeBytes,
         total_space : m_nTotalBytes,
     }
+    console.log(data);
     var content = qs.stringify(data);  
     
     var options = {  
