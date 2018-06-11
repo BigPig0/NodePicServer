@@ -47,16 +47,14 @@ app.use(bodyParser.urlencoded());
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
   console.log("%s,%s,%s",req.originalUrl,req.query.name,req.query.type);
-  state.
-  //jiancha
-  if(state.saving_num >= state.save_max) {
-    console.log("saveing num is ", state.saving_num);
-    res.status(400).send("saving file is max");
-    return;
-  }
-  if (state.free_space < 1024*1024*1024) {
-    console.log("free space is ",state.free_space);
-    res.status(400).send("free space is "+state.free_space);
+  state.post_num++;
+  state.last_post = moment().format('hh:mm:ss');
+
+  //检查能否保存图片
+  var err;
+  if(!state.add_state(err)) {
+    res.status(400).send(err);
+    state.add_refuse(req.headers["content-length"]);
     return;
   }
 
@@ -64,12 +62,11 @@ app.post('/imageServer/image', function(req, res) {
   var reqData = [];
   var size = 0;
   req.on('data', function (data) {
-    //console.log('>>>req on');
     reqData.push(data);
     size += data.length;
   });
   req.on('end', function () {
-    req.reqData = Buffer.concat(reqData, size);
+    var picData = Buffer.concat(reqData, size);
     //保存图片内容
     var name = req.query.name;
     var type = req.query.type;
@@ -92,12 +89,14 @@ app.post('/imageServer/image', function(req, res) {
     mkdirsSync(path);
     path = path + file_name;
     console.log("save file %s", path);
-    var fd = fs.writeFile(path, req.reqData, function (err, fd) {
+    state.last_save = moment().format('hh:mm:ss');
+    var fd = fs.writeFile(path, picData, function (err) {
+      state.post_success++;
       if (err){
-          console.log('文件写入shibai');
-          throw err;
+          console.log('文件写入shibai',err.message);
       };
-      state.saving_num--;
+      state.saving_num--; //正在保存任务数
+      state.add_pic(picData.length);  //成功保存的图片
     });
   });
 })
@@ -150,7 +149,8 @@ app.get('/imageCenter/display',function (req, res) {
     }
     var data = JSON.stringify(st);
     //console.log(data);
-    res.status(0).send(data);
+    res.header("Access-Control-Allow-Origin", "*");
+    res.status(200).send(data);
 })
  
 var server = app.listen(config.port, function () {
