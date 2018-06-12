@@ -104,7 +104,7 @@ app.post('/imageServer/image', function(req, res) {
 
 /** 图片访问请求 */
 app.get('/imageServer/image', function (req, res) {
-   console.log(req.originalUrl);
+   //console.log(req.originalUrl);
    state.get_num++;
    //console.log(req.body);
    //var parsename = sscanf(req.query.name, "%s_%6s%2s%5s");
@@ -125,7 +125,7 @@ app.get('/imageServer/image', function (req, res) {
     }
     strPicPath += req.query.name;
    //res.send('Hello World');
-   console.log(strPicPath);
+   //console.log(strPicPath);
    res.sendFile(strPicPath);
    state.get_success++;
 })
@@ -134,8 +134,13 @@ app.get('/imageServer/image', function (req, res) {
 app.post('/imageCenter/update',function (req, res) {
   console.log("new request: %s",req.originalUrl);
   //console.log(req.body);
-  pic_center_data[req.connection.remoteAddress] = req.body;
-  pic_center_data[req.connection.remoteAddress].server_ip = req.connection.remoteAddress;
+  var ip_array = req.connection.remoteAddress.split(':');
+  var ip = req.connection.remoteAddress;
+  if(ip_array.length > 0)
+    ip = ip_array[ip_array.length-1];
+
+  pic_center_data[ip] = req.body;
+  pic_center_data[ip].server_ip = ip;
   //console.log(pic_center_data);
   res.send('update ok');
 
