@@ -6,6 +6,7 @@ var md5tool=require("md5");
 var qs = require('querystring');
 var os = require('os');
 var moment = require('moment');
+var log4js = require('log4js');
 
 //递归创建目录 同步方法  
 function mkdirsSync(dirname) {  
@@ -26,6 +27,27 @@ if(conf_file == null)
   conf_file = 'config';
 var config = require('./'+conf_file);
 
+//日志模块
+var logPath = './logs/'+conf_file;
+mkdirsSync(logPath);
+logPath += '/log.txt';
+log4js.configure({
+  appenders: {
+    console : { type: 'console' }, //控制台输出
+    index :{
+      type: 'file', //文件输出
+      filename: logPath, 
+      maxLogSize: 1024*1024*10,
+      backups:100
+    }
+  },
+  categories: {
+    default: { appenders: ['index'], level: 'info' }
+  },
+  replaceConsole: true
+});
+var logger = log4js.getLogger('index');
+
 //加载状态统计模块
 var state = require('./state');
 state.server_port = config.port;
@@ -41,13 +63,14 @@ var pic_center_data = {};
 //启动http服务器
 var app = express();
 
+app.use(log4js.connectLogger(logger, {level:log4js.levels.INFO}));
 app.use(bodyParser.raw());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
-  //console.log("%s,%s,%s",req.originalUrl,req.query.name,req.query.type);
+  //logger.info(req.originalUrl);
   state.post_num++;
   state.last_post = moment().format('hh:mm:ss');
 
@@ -89,7 +112,7 @@ app.post('/imageServer/image', function(req, res) {
     state.saving_num++;
     mkdirsSync(path);
     path = path + file_name;
-    //console.log("save file %s", path);
+    logger.info("save file %s", path);
     state.last_save = moment().format('hh:mm:ss');
     var fd = fs.writeFile(path, picData, function (err) {
       state.post_success++;
@@ -104,10 +127,8 @@ app.post('/imageServer/image', function(req, res) {
 
 /** 图片访问请求 */
 app.get('/imageServer/image', function (req, res) {
-   //console.log(req.originalUrl);
+   //logger.info(req.originalUrl);
    state.get_num++;
-   //console.log(req.body);
-   //var parsename = sscanf(req.query.name, "%s_%6s%2s%5s");
    var twostr = req.query.name.split('_');
    if(twostr.length != 2 || twostr[1].length < 13) {
      res.status(400).send("not found");
@@ -124,16 +145,14 @@ app.get('/imageServer/image', function (req, res) {
       strPicPath = strPicPath + szMD5[m] + "\\";
     }
     strPicPath += req.query.name;
-   //res.send('Hello World');
-   //console.log(strPicPath);
+   logger.info(strPicPath);
    res.sendFile(strPicPath);
    state.get_success++;
 })
 
 /** 图片服务器状态提交 */
 app.post('/imageCenter/update',function (req, res) {
-  console.log("new request: %s",req.originalUrl);
-  //console.log(req.body);
+  //logger.info("new request: %s",req.originalUrl);
   var ip_array = req.connection.remoteAddress.split(':');
   var ip = req.connection.remoteAddress;
   if(ip_array.length > 0)
@@ -141,20 +160,18 @@ app.post('/imageCenter/update',function (req, res) {
 
   pic_center_data[ip] = req.body;
   pic_center_data[ip].server_ip = ip;
-  //console.log(pic_center_data);
   res.send('update ok');
 
 })
 
 /** 图片服务器状态获取 */
 app.get('/imageCenter/display',function (req, res) {
-    console.log("%s",req.originalUrl);
+    //logger.info("%s",req.originalUrl);
     var st = { root : []};
     for(serip in pic_center_data) {
       st.root.push(pic_center_data[serip]);
     }
     var data = JSON.stringify(st);
-    //console.log(data);
     res.header("Access-Control-Allow-Origin", "*");
     res.status(200).send(data);
 })
