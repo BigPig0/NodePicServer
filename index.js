@@ -160,8 +160,8 @@ app.post('/imageCenter/update',function (req, res) {
   if(ip_array.length > 0)
     ip = ip_array[ip_array.length-1];
 
-  pic_center_data[ip] = req.body;
-  pic_center_data[ip].server_ip = ip;
+  pic_center_data[ip + ":" + req.body.server_port] = req.body;
+  pic_center_data[ip + ":" + req.body.server_port].server_ip = ip;
   res.send('update ok');
 
 })
