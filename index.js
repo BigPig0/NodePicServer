@@ -79,6 +79,7 @@ app.post('/imageServer/image', function(req, res) {
   if(!state.add_state(err)) {
     res.status(400).send(err);
     state.add_refuse(req.headers["content-length"]);
+    logger.warn('不能保存图片');
     return;
   }
 
@@ -112,12 +113,12 @@ app.post('/imageServer/image', function(req, res) {
     state.saving_num++;
     mkdirsSync(path);
     path = path + file_name;
-    logger.info("save file %s", path);
+    //logger.info("save file %s", path);
     state.last_save = moment().format('hh:mm:ss');
     var fd = fs.writeFile(path, picData, function (err) {
       state.post_success++;
       if (err){
-          console.log('文件写入失败',err.message);
+        logger.error('文件写入失败',err.message);
       };
       state.saving_num--; //正在保存任务数
       state.add_pic(picData.length);  //成功保存的图片
@@ -132,6 +133,7 @@ app.get('/imageServer/image', function (req, res) {
    var twostr = req.query.name.split('_');
    if(twostr.length != 2 || twostr[1].length < 13) {
      res.status(400).send("not found");
+     logger.warn('错误的图片名称 %s',req.originalUrl);
      return;
    }
 
@@ -145,7 +147,7 @@ app.get('/imageServer/image', function (req, res) {
       strPicPath = strPicPath + szMD5[m] + "\\";
     }
     strPicPath += req.query.name;
-   logger.info(strPicPath);
+   //logger.info(strPicPath);
    res.sendFile(strPicPath);
    state.get_success++;
 })
