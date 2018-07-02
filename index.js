@@ -1,4 +1,4 @@
-var express = require('express');
+﻿var express = require('express');
 var bodyParser = require('body-parser');
 var fs = require("fs");
 var path = require("path");
@@ -99,7 +99,7 @@ app.post('/imageServer/image', function(req, res) {
     var today = moment();
     var ym = today.format('YYYYMM');
     var ymd = today.format('YYYYMMDD');
-    var type_folder = type=='1'?'volation':'record';
+    var type_folder = type=='1'?'violation':'record';
     var path = config.rootPath + '\\images\\' + type_folder + '\\' + ym + '\\' + ymd + '\\';
     for (var m=0; m<5; ++m)
     {
