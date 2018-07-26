@@ -148,8 +148,12 @@ app.get('/imageServer/image', function (req, res) {
     }
     strPicPath += req.query.name;
    //logger.info(strPicPath);
-   res.sendFile(strPicPath);
-   state.get_success++;
+   if (fs.existsSync(strPicPath)) {  
+      res.sendFile(strPicPath);
+      state.get_success++;
+   } else {
+      res.status(400).send("not found");
+   }
 })
 
 /** 图片服务器状态提交 */
