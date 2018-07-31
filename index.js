@@ -148,11 +148,13 @@ app.get('/imageServer/image', function (req, res) {
     }
     strPicPath += req.query.name;
    //logger.info(strPicPath);
-   if (fs.existsSync(strPicPath)) {  
+   if (fs.existsSync(strPicPath)) {
+      res.header('Cache-Control','no-store');
       res.sendFile(strPicPath);
       state.get_success++;
    } else {
       res.status(400).send("not found");
+      logger.error('图片不存在 %s',req.originalUrl);
    }
 })
 

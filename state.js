@@ -4,7 +4,7 @@ var qs = require('querystring');
 var moment = require('moment');
 
 // 当天信息
-var m_nPicSavMax = 5000;//允许缓存的最大图片数
+var m_nPicSavMax = 500; //允许缓存的最大图片数
 var m_nDate = 0;        //当前日期
 var m_nPicNum = 0;      //当前日期处理的图片数量
 var m_nPicBytes = 0;    //当前日期处理的图片大小
