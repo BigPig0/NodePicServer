@@ -138,10 +138,13 @@ function upstate(o) {
     
     // write data to request body  
     req.write(content);
-    
     req.end();
 
 };
+
+function update_thread(o) {
+    setImmediate(upstate, o);
+}
 
 module.exports.run = function () {
     //获取当前磁盘空间
@@ -154,5 +157,5 @@ module.exports.run = function () {
     });
 
     //上传状态定时器
-    setInterval(upstate, 60000, this);
+    setInterval(update_thread, 60000, this);
 };

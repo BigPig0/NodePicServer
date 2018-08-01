@@ -30,23 +30,34 @@ var config = require('./'+conf_file);
 //日志模块
 var logPath = './logs/'+conf_file;
 mkdirsSync(logPath);
-logPath += '/log.txt';
+var infologPath = logPath + '/log.txt';
+var errlogPath = logPath + 'err';
 log4js.configure({
   appenders: {
-    console : { type: 'console' }, //控制台输出
-    index :{
-      type: 'file', //文件输出
-      filename: logPath, 
+    console : {          //控制台输出
+      type: 'console' 
+    }, 
+    infofile :{          //文件输出
+      type: 'file',
+      filename: infologPath, 
       maxLogSize: 1024*1024*10,
       backups:100
+    },
+    errfile : {          //错误信息文件输出
+      type: 'dateFile',
+      filename: errlogPath,
+      alwaysIncludePattern: true,
+      pattern: '-yyyy-MM-dd.txt',
+      backups:10,
+      level: 'error'
     }
   },
   categories: {
-    default: { appenders: ['index'], level: 'info' }
+    default: { appenders: ['infofile','errfile'], level: 'info' }
   },
   replaceConsole: true
 });
-var logger = log4js.getLogger('index');
+var logger = log4js.getLogger();
 
 //加载状态统计模块
 var state = require('./state');
@@ -78,8 +89,9 @@ app.post('/imageServer/image', function(req, res) {
   var err;
   if(!state.add_state(err)) {
     res.status(400).send(err);
-    state.add_refuse(req.headers["content-length"]);
-    logger.warn('不能保存图片');
+    var len = req.headers["content-length"];
+    if(len) state.add_refuse(Number(len));
+    logger.warn('不能保存图片['+err+']');
     return;
   }
 
@@ -113,7 +125,7 @@ app.post('/imageServer/image', function(req, res) {
     state.saving_num++;
     mkdirsSync(path);
     path = path + file_name;
-    //logger.info("save file %s", path);
+    logger.info("save file %s", path);
     state.last_save = moment().format('hh:mm:ss');
     var fd = fs.writeFile(path, picData, function (err) {
       state.post_success++;
