@@ -31,7 +31,7 @@ var config = require('./'+conf_file);
 var logPath = './logs/'+conf_file;
 mkdirsSync(logPath);
 var infologPath = logPath + '/log.txt';
-var errlogPath = logPath + 'err';
+var errlogPath = logPath + '/err';
 log4js.configure({
   appenders: {
     console : {          //控制台输出
@@ -48,16 +48,17 @@ log4js.configure({
       filename: errlogPath,
       alwaysIncludePattern: true,
       pattern: '-yyyy-MM-dd.txt',
-      backups:10,
-      level: 'error'
+      backups:10
     }
   },
   categories: {
-    default: { appenders: ['infofile','errfile'], level: 'info' }
+    default: { appenders: ['infofile'], level: 'info' },
+    errlog: { appenders: ['errfile'], level: 'error' }
   },
   replaceConsole: true
 });
 var logger = log4js.getLogger();
+var logerror = log4js.getLogger('errlog').error;
 
 //加载状态统计模块
 var state = require('./state');
@@ -130,7 +131,7 @@ app.post('/imageServer/image', function(req, res) {
     var fd = fs.writeFile(path, picData, function (err) {
       state.post_success++;
       if (err){
-        logger.error('文件写入失败',err.message);
+        logerror('文件写入失败',err.message);
       };
       state.saving_num--; //正在保存任务数
       state.add_pic(picData.length);  //成功保存的图片
@@ -166,7 +167,7 @@ app.get('/imageServer/image', function (req, res) {
       state.get_success++;
    } else {
       res.status(400).send("not found");
-      logger.error('图片不存在 %s',req.originalUrl);
+      logerror('图片不存在 %s',req.originalUrl);
    }
 })
 
