@@ -6,93 +6,61 @@ var md5tool=require("md5");
 var qs = require('querystring');
 var os = require('os');
 var moment = require('moment');
-var log4js = require('log4js');
+var log = require('./log');
+var filemgr = require('./filemgr');
+var diskinfo = require('./disk');
+var state = require('./state');
+var pro = require('./process');
 
-//递归创建目录 同步方法  
-function mkdirsSync(dirname) {  
-  //console.log(dirname);  
-  if (fs.existsSync(dirname)) {  
-      return true;  
-  } else {  
-      if (mkdirsSync(path.dirname(dirname))) {  
-          fs.mkdirSync(dirname);  
-          return true;  
-      }  
-  }  
-}  
-
-//读取命令行参数,配置文件
+//读取命令行参数,加载配置文件
 var conf_file = process.argv[2];
 if(conf_file == null)
   conf_file = 'config';
 var config = require('./'+conf_file);
 
-//日志模块
+//加载日志模块
 var logPath = './logs/'+conf_file;
-mkdirsSync(logPath);
-var infologPath = logPath + '/log.txt';
-var errlogPath = logPath + '/err';
-log4js.configure({
-  appenders: {
-    console : {          //控制台输出
-      type: 'console' 
-    }, 
-    infofile :{          //文件输出
-      type: 'file',
-      filename: infologPath, 
-      maxLogSize: 1024*1024*10,
-      backups:100
-    },
-    errfile : {          //错误信息文件输出
-      type: 'dateFile',
-      filename: errlogPath,
-      alwaysIncludePattern: true,
-      pattern: '-yyyy-MM-dd.txt',
-      backups:10
-    }
-  },
-  categories: {
-    default: { appenders: ['infofile'], level: 'info' },
-    errlog: { appenders: ['errfile'], level: 'error' }
-  },
-  replaceConsole: true
-});
-var logger = log4js.getLogger();
-var logerror = log4js.getLogger('errlog').error;
+filemgr.mkdirsSync(logPath);
+log.setPath(logPath);
+
+//加载磁盘信息统计模块
+diskinfo.set_disk_path(config.rootPath);
 
 //加载状态统计模块
-var state = require('./state');
 state.server_port = config.port;
 state.server_home = config.rootPath;
-state.center_ip = config.centerIP;
-state.center_port = config.centerPort;
 if(config.centerIP != null)
-  state.run();
+  state.run(config.centerIP, config.centerPort);
 
-//图片服务器中心统计数据
-var pic_center_data = {};
 
 //启动http服务器
 var app = express();
 
-app.use(log4js.connectLogger(logger, {level:log4js.levels.INFO}));
+//app.use(log4js.connectLogger(logger, {level:log4js.levels.INFO}));
 app.use(bodyParser.raw());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({extended:false}));
 
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
-  //logger.info(req.originalUrl);
+  //log.info(req.originalUrl);
   state.post_num++;
-  state.last_post = moment().format('hh:mm:ss');
+  state.last_post = moment().format('HH:mm:ss');
 
   //检查能否保存图片
-  var err;
-  if(!state.add_state(err)) {
+  if(pro.is_stop()) {
     res.status(400).send(err);
     var len = req.headers["content-length"];
     if(len) state.add_refuse(Number(len));
-    logger.warn('不能保存图片['+err+']');
+    log.warn('不能保存图片[服务器已关闭]');
+    return;
+  }
+  var err;
+  if(!diskinfo.add_state(err) || !filemgr.add_state(err)) {
+    res.status(400).send(err);
+    var len = req.headers["content-length"];
+    if(len) state.add_refuse(Number(len));
+    log.warn('不能保存图片['+err+']');
     return;
   }
 
@@ -122,31 +90,29 @@ app.post('/imageServer/image', function(req, res) {
     var suffix = name.split(".")[1];
     var file_name = type_folder + "_" + ymd + md5 + '.' + suffix;
     res.send(file_name);
+    state.post_success++;       //上传成功数
   
-    state.saving_num++;
-    mkdirsSync(path);
+    filemgr.mkdirsSync(path);
     path = path + file_name;
-    logger.info("save file %s", path);
-    state.last_save = moment().format('hh:mm:ss');
-    var fd = fs.writeFile(path, picData, function (err) {
-      state.post_success++;
-      if (err){
-        logerror('文件写入失败',err.message);
-      };
-      state.saving_num--; //正在保存任务数
-      state.add_pic(picData.length);  //成功保存的图片
-    });
+    //log.info("save file %s", path);
+    var task = { path : path, data : picData };
+    filemgr.save_pic(task);
   });
-})
+});
 
 /** 图片访问请求 */
 app.get('/imageServer/image', function (req, res) {
-   //logger.info(req.originalUrl);
+   //log.info(req.originalUrl);
    state.get_num++;
-   var twostr = req.query.name.split('_');
+   var name = req.query.name;
+   if(!name) {
+     res.status(400).send("not found");
+     log.error('错误的图片名称 %s',req.originalUrl)
+   }
+   var twostr = name.split('_');
    if(twostr.length != 2 || twostr[1].length < 13) {
      res.status(400).send("not found");
-     logger.warn('错误的图片名称 %s',req.originalUrl);
+     log.warn('错误的图片名称 %s',req.originalUrl);
      return;
    }
 
@@ -160,20 +126,24 @@ app.get('/imageServer/image', function (req, res) {
       strPicPath = strPicPath + szMD5[m] + "\\";
     }
     strPicPath += req.query.name;
-   //logger.info(strPicPath);
+   //log.info(strPicPath);
    if (fs.existsSync(strPicPath)) {
-      res.header('Cache-Control','no-store');
+      //res.header('Cache-Control','no-store');
       res.sendFile(strPicPath);
       state.get_success++;
    } else {
       res.status(400).send("not found");
-      logerror('图片不存在 %s',req.originalUrl);
+      log.error('图片不存在 %s',req.originalUrl);
    }
-})
+});
+
+
+//图片服务器中心统计数据
+var pic_center_data = {};
 
 /** 图片服务器状态提交 */
 app.post('/imageCenter/update',function (req, res) {
-  //logger.info("new request: %s",req.originalUrl);
+  //log.info("new request: %s",req.originalUrl);
   var ip_array = req.connection.remoteAddress.split(':');
   var ip = req.connection.remoteAddress;
   if(ip_array.length > 0)
@@ -183,11 +153,11 @@ app.post('/imageCenter/update',function (req, res) {
   pic_center_data[ip + ":" + req.body.server_port].server_ip = ip;
   res.send('update ok');
 
-})
+});
 
 /** 图片服务器状态获取 */
 app.get('/imageCenter/display',function (req, res) {
-    //logger.info("%s",req.originalUrl);
+    log.info("%s",req.originalUrl);
     var st = { root : []};
     for(serip in pic_center_data) {
       st.root.push(pic_center_data[serip]);
@@ -195,7 +165,7 @@ app.get('/imageCenter/display',function (req, res) {
     var data = JSON.stringify(st);
     res.header("Access-Control-Allow-Origin", "*");
     res.status(200).send(data);
-})
+});
  
 var server = app.listen(config.port, function () {
  
@@ -206,4 +176,7 @@ var server = app.listen(config.port, function () {
  
   console.log("应用实例，访问地址为 http://%s:%s", host, port)
  
-})
+});
+server.setTimeout(0);
+
+console.log('run index.js');

@@ -1,19 +1,20 @@
-var diskspace = require('diskspace');
 var http = require('http');
 var qs = require('querystring');
 var moment = require('moment');
+var fs = require("fs");
+var log = require('./log');
+var filemgr = require('./filemgr');
+var diskinfo = require('./disk');
 
 // 当天信息
-var m_nPicSavMax = 500; //允许缓存的最大图片数
-var m_nDate = 0;        //当前日期
-var m_nPicNum = 0;      //当前日期处理的图片数量
-var m_nPicBytes = 0;    //当前日期处理的图片大小
+var m_nDate = 0;         //当前日期
 var m_nRefNum = 0;      //当前日期拒绝的图片数量
 var m_nRefBytes = 0;    //当前日期拒绝的图片大小
 
-// 磁盘信息
-var m_nFreeBytes = 0;     //空闲容量
-var m_nTotalBytes = 0;    //总容量
+//图片服务器中心
+var m_centerIP = "-";
+var m_centerPort = "-";
+
 
 module.exports = {
     //访问图片统计
@@ -23,38 +24,14 @@ module.exports = {
     //上传图片统计
     post_num : 0,       //上传图片请求数
     post_success : 0,   //上传成功数，不一定保存成功
-
-    saving_num : 0,     //正在执行的图片保存任务数
-
     last_post : 0,      //最后一次收到图片的时间
-    last_save : 0,      //最后一次保存图片的时间
 
     // 服务器属性
     server_ip : '-',    //图片服务器IP,不一定跟配置中一样
     server_port : '-',  //图片服务器端口
-    server_home : '-',  //图片服务器根路径
-
-    // 信息统计服务器的属性
-    center_ip : '-',   //统计服务器IP
-    center_port : '-'  //统计服务器端口
 };
 
-//检查能否处理上传图片请求
-module.exports.add_state = function (err) {
-    //未处理完成的任务数
-    if(this.saving_num >= m_nPicSavMax) {
-        console.log("saveing num is ", this.saving_num);
-        err = "saving file is max";
-        return false;
-    }
-    //磁盘剩余空间 1G = 1024*1024*1024
-    if (this.free_space < 1073741824) {
-        console.log("free space is ",this.free_space);
-        err = "free space is " + this.free_space;
-        return false;
-    }
-    return true;
-};
+
 
 module.exports.add_pic = function (bytes) {
     var today = moment().format('YYYY-MM-DD');
@@ -82,13 +59,10 @@ module.exports.add_refuse = function (bytes) {
   
 //上传状态
 function upstate(o) {
-    //获取当前磁盘空间
-    var disk_path = o.server_home[0];
-    console.log('store disk is ' + disk_path);
-    diskspace.check(disk_path, function (err, result) {
-        m_nTotalBytes = result.total;
-        m_nFreeBytes = result.free;
-    });
+    //存储盘空间大小
+    var diskstate = diskinfo.get_disk_info();
+    //文件写入状态
+    var filestate = filemgr.get_state();
 
     //发送的数据
     var data = {
@@ -98,23 +72,23 @@ function upstate(o) {
         get_success : o.get_success,
         post_num : o.post_num,
         post_success : o.post_success,
-        saving_num : o.saving_num,
+        saving_num : ''+filestate.saving_num+'/'+filestate.buff_len,
         last_post : o.last_post,
-        last_save : o.last_save,
+        last_save : filestate.last_save,
         date : m_nDate,
-        pic_num : m_nPicNum,
-        pic_bytes: m_nPicBytes,
+        pic_num : filestate.pic_num,
+        pic_bytes: filestate.pic_bytes,
         ref_num : m_nRefNum,
         ref_bytes : m_nRefBytes,
-        free_space : m_nFreeBytes,
-        total_space : m_nTotalBytes,
+        free_space : diskstate.free_bytes,
+        total_space : diskstate.total_bytes,
     }
     var content = qs.stringify(data);  
     console.log(data);
     
     var options = {  
-        hostname: o.center_ip,  
-        port: o.center_port,  
+        hostname: m_centerIP,  
+        port: m_centerPort,  
         path: '/imageCenter/update',  
         method: 'POST',
         headers: {  
@@ -146,16 +120,11 @@ function update_thread(o) {
     setImmediate(upstate, o);
 }
 
-module.exports.run = function () {
-    //获取当前磁盘空间
-    var disk_path = this.server_home[0];
-    console.log('store disk is ' + disk_path);
-
-    diskspace.check(disk_path, function (err, result) {
-        m_nTotalBytes = result.total;
-        m_nFreeBytes = result.free;
-    });
-
+module.exports.run = function (ip,port) {
+    m_centerIP = ip;
+    m_centerPort = port;
     //上传状态定时器
     setInterval(update_thread, 60000, this);
 };
+
+console.log('run state.js');
