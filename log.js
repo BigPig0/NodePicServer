@@ -50,18 +50,19 @@ module.exports.debug = (message, ...args)=> {
 
 module.exports.info = (message, ...args)=> {
     if(!is_init) return;
+    console.info(message, args);
     logger.info(message, args);
 }
 
 module.exports.warn = (message, ...args)=> {
     if(!is_init) return;
-    console.log(message, args);
+    console.warn(message, args);
     logger.warn(message, args);
 }
 
 module.exports.error = (message, ...args)=> {
     if(!is_init) return;
-    console.log(message, args);
+    console.error(message, args);
     logger.error(message, args);
     logerror.error(message, args);
 }
