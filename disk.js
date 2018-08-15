@@ -1,4 +1,5 @@
 var diskspace = require('diskspace');
+var osType = require('os').type();
 
 // 磁盘信息
 var m_nFreeBytes = 0;     //空闲容量
@@ -14,7 +15,11 @@ function checkDiskInfo () {
 }
 
 module.exports.set_disk_path = function (disk_path) {
-    m_diskPath = disk_path[0];
+    if (osType === 'Windows_NT') {
+        m_diskPath = disk_path[0];
+    } else {
+        m_diskPath = disk_path;
+    }
     checkDiskInfo();
 };
 
@@ -36,3 +41,5 @@ module.exports.add_state = function (err) {
     }
     return true;
 };
+
+console.log('run disk.js');

@@ -9,21 +9,7 @@ var m_nPicSavMax = 50;     //同时写入的最大图片数
 var m_nPibBuffNum = 5000;  //允许缓存的最大图片数
 var m_nSavingNum = 0;      //正在执行的图片保存任务数
 var m_lastSaveTime = 0;    //最后一次保存图片的时间
-var m_nDate = 0;           //当前日期
-var m_nPicNum = 0;         //当前日期处理的图片数量
-var m_nPicBytes = 0;       //当前日期处理的图片大小
 
-function add_pic (bytes) {
-    var today = moment().format('YYYY-MM-DD');
-    if (m_nDate == today) {
-        ++m_nPicNum;
-        m_nPicBytes += bytes;
-    } else {
-        m_nDate = today;
-        m_nPicNum = 1;
-        m_nPicBytes = bytes;
-    }
-}
 
 function mkdirs_Sync(dirname) {
     //console.log(dirname);  
@@ -63,7 +49,7 @@ function savePic (task) {
         }
 
         m_nSavingNum--;               //正在保存任务数
-        add_pic(task.data.length);  //成功保存的图片大小
+        state.add_pic(task.data.length);  //成功保存的图片大小
 
         //console.log('write pic to disk ok %s',picPath);
         //将缓存中的图片写入磁盘中
@@ -93,15 +79,13 @@ module.exports.get_state = function () {
     return {
         saving_num : m_nSavingNum,
         buff_len   : m_picBuff.length,
-        last_save  : m_lastSaveTime,
-        pic_num    : m_nPicNum,
-        pic_bytes  : m_nPicBytes
+        last_save  : m_lastSaveTime
     };
 };
 
 module.exports.finish_all_buff = function () {
     console.log('saving:%d, buff:%d', m_nSavingNum, m_picBuff.length);
-    
+
     if(m_picBuff.length == 0 && m_nSavingNum == 0)
         return true;
     

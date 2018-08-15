@@ -1,16 +1,17 @@
 ﻿var express = require('express');
-var bodyParser = require('body-parser');
-var fs = require("fs");
-var path = require("path");
-var md5tool=require("md5");
-var qs = require('querystring');
-var os = require('os');
-var moment = require('moment');
-var log = require('./log');
-var filemgr = require('./filemgr');
+var bp      = require('body-parser');
+var fs      = require("fs");
+var path    = require("path");
+var md5tool =require("md5");
+var qs      = require('querystring');
+var os      = require('os');
+var moment  = require('moment');
+
+var log      = require('./log');
+var filemgr  = require('./filemgr');
 var diskinfo = require('./disk');
-var state = require('./state');
-var pro = require('./process');
+var state    = require('./state');
+var pro      = require('./process');
 
 //读取命令行参数,加载配置文件
 var conf_file = process.argv[2];
@@ -27,25 +28,23 @@ log.setPath(logPath);
 diskinfo.set_disk_path(config.rootPath);
 
 //加载状态统计模块
-state.server_port = config.port;
-state.server_home = config.rootPath;
-if(config.centerIP != null)
+state.set_server_info('-',config.port);
+if(config.centerIP != null) {
   state.run(config.centerIP, config.centerPort);
-
+}
 
 //启动http服务器
 var app = express();
 
 //app.use(log4js.connectLogger(logger, {level:log4js.levels.INFO}));
-app.use(bodyParser.raw());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended:false}));
+app.use(bp.raw());
+app.use(bp.json());
+app.use(bp.urlencoded({extended:false}));
 
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
   //log.info(req.originalUrl);
-  state.post_num++;
-  state.last_post = moment().format('HH:mm:ss');
+  state.add_post();
 
   //检查能否保存图片
   if(pro.is_stop()) {
@@ -89,8 +88,8 @@ app.post('/imageServer/image', function(req, res) {
   
     var suffix = name.split(".")[1];
     var file_name = type_folder + "_" + ymd + md5 + '.' + suffix;
-    res.send(file_name);
-    state.post_success++;       //上传成功数
+    res.send(file_name);       //应答返回文件名称
+    state.add_post_ok();       //上传成功数
   
     filemgr.mkdirsSync(path);
     path = path + file_name;
@@ -103,7 +102,7 @@ app.post('/imageServer/image', function(req, res) {
 /** 图片访问请求 */
 app.get('/imageServer/image', function (req, res) {
    //log.info(req.originalUrl);
-   state.get_num++;
+   state.add_get();
    var name = req.query.name;
    if(!name) {
      res.status(400).send("not found");
@@ -130,7 +129,7 @@ app.get('/imageServer/image', function (req, res) {
    if (fs.existsSync(strPicPath)) {
       //res.header('Cache-Control','no-store');
       res.sendFile(strPicPath);
-      state.get_success++;
+      state.add_get_ok();
    } else {
       res.status(400).send("not found");
       log.error('图片不存在 %s',req.originalUrl);

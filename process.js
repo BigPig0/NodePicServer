@@ -7,8 +7,7 @@ process.on('exit', function(){
 });
 
 process.on('SIGINT', function() {
-    console.log('Got SIGINT.  Press Control-D/Control-C to exit.');
-    log.info('Got SIGINT.  Press Control-D/Control-C to exit.');
+    log.warn('Got SIGINT.  Press Control-D/Control-C to exit.');
     taskStop();
 });
 

@@ -1,87 +1,89 @@
-var http = require('http');
-var qs = require('querystring');
+var http   = require('http');
+var qs     = require('querystring');
 var moment = require('moment');
-var fs = require("fs");
-var log = require('./log');
-var filemgr = require('./filemgr');
+var fs     = require("fs");
+
+var log      = require('./log');
+var filemgr  = require('./filemgr');
 var diskinfo = require('./disk');
 
 // 当天信息
-var m_nDate = 0;         //当前日期
+var m_nDate = moment().format('YYYY-MM-DD');    //当前日期
+var m_nGetNum = 0;      //访问图片的请求数
+var m_nGetSuccess = 0;  //成功访问数
+var m_nPostNum = 0;     //上传图片请求数
+var m_nPostSuccess = 0; //正确的上传请求数，统计于开始写文件之前
+var m_lastPostTime = 0; //最后一次收到图片的时间
+var m_nPicNum = 0;      //当前日期处理的图片数量
+var m_nPicBytes = 0;    //当前日期处理的图片大小
 var m_nRefNum = 0;      //当前日期拒绝的图片数量
 var m_nRefBytes = 0;    //当前日期拒绝的图片大小
 
+//图片服务器
+var m_serverIP = '0.0.0.0';
+var m_serverport = 80;
 //图片服务器中心
 var m_centerIP = "-";
 var m_centerPort = "-";
 
-
 module.exports = {
-    //访问图片统计
-    get_num : 0,        //访问图片的请求数
-    get_success : 0,    //成功访问数
-
-    //上传图片统计
-    post_num : 0,       //上传图片请求数
-    post_success : 0,   //上传成功数，不一定保存成功
-    last_post : 0,      //最后一次收到图片的时间
-
-    // 服务器属性
-    server_ip : '-',    //图片服务器IP,不一定跟配置中一样
-    server_port : '-',  //图片服务器端口
-};
-
-
-
-module.exports.add_pic = function (bytes) {
-    var today = moment().format('YYYY-MM-DD');
-    if (m_nDate == today) {
-        ++m_nPicNum;
-        m_nPicBytes += bytes;
-    } else {
-        m_nDate = today;
-        m_nPicNum = 1;
-        m_nPicBytes = bytes;
+    //查看图片请求统计
+    add_get     : ()=>{ ++m_nGetNum; },
+    add_get_ok  : ()=>{ ++m_nGetSuccess; },
+    //推送图片请求统计
+    add_post    : ()=>{ ++m_nPostNum; m_lastPostTime = moment().format('HH:mm:ss');},
+    add_post_ok : ()=>{ ++m_nPostSuccess; },
+    //写入成功的图片统计
+    add_pic     : (bytes)=>{++m_nPicNum; m_nPicBytes += bytes; },
+    //被拒绝的图片统计
+    add_refuse  : (bytes)=>{++m_nRefNum; m_nRefBytes += bytes; },
+    //服务的ip、端口信息传递
+    set_server_info : (ip, port)=>{
+        m_serverIP = ip;
+        m_serverport = port;
     }
 };
 
-module.exports.add_refuse = function (bytes) {
-    var today = moment().format('YYYY-MM-DD');
-    if (m_nDate == today) {
-        ++m_nRefNum;
-        m_nRefBytes += bytes;
-    } else {
-        m_nDate = today;
-        m_nRefNum = 1;
-        m_nRefBytes = bytes;
-    }
-};
   
 //上传状态
-function upstate(o) {
+function upstate() {
+    //新的一天重新统计
+    var today = moment().format('YYYY-MM-DD');
+    if (m_nDate != today) {
+        m_nDate = today;
+        m_nGetNum = 0;      //访问图片的请求数
+        m_nGetSuccess = 0;  //成功访问数
+        m_nPostNum = 0;     //上传图片请求数
+        m_nPostSuccess = 0; //正确的上传请求数，统计于开始写文件之前
+        m_nPicNum = 0;      //当前日期处理的图片数量
+        m_nPicBytes = 0;    //当前日期处理的图片大小
+        m_nRefNum = 0;      //当前日期拒绝的图片数量
+        m_nRefBytes = 0;    //当前日期拒绝的图片大小
+    }
+
     //存储盘空间大小
     var diskstate = diskinfo.get_disk_info();
-    //文件写入状态
+    //文件保存状态
     var filestate = filemgr.get_state();
 
     //发送的数据
     var data = {
-        server_ip : o.server_ip,
-        server_port : o.server_port,
-        get_num : o.get_num,
-        get_success : o.get_success,
-        post_num : o.post_num,
-        post_success : o.post_success,
-        saving_num : ''+filestate.saving_num+'/'+filestate.buff_len,
-        last_post : o.last_post,
-        last_save : filestate.last_save,
-        date : m_nDate,
-        pic_num : filestate.pic_num,
-        pic_bytes: filestate.pic_bytes,
-        ref_num : m_nRefNum,
-        ref_bytes : m_nRefBytes,
-        free_space : diskstate.free_bytes,
-        total_space : diskstate.total_bytes,
+        server_ip    : m_serverIP,
+        server_port  : m_serverport,
+        get_num      : m_nGetNum,
+        get_success  : m_nGetSuccess,
+        post_num     : m_nPostNum,
+        post_success : m_nPostSuccess,
+        saving_num   : ''+filestate.saving_num+'/'+filestate.buff_len,
+        last_post    : m_lastPostTime,
+        last_save    : filestate.last_save,
+        date         : m_nDate,
+        pic_num      : m_nPicNum,
+        pic_bytes    : m_nPicBytes,
+        ref_num      : m_nRefNum,
+        ref_bytes    : m_nRefBytes,
+        free_space   : diskstate.free_bytes,
+        total_space  : diskstate.total_bytes,
     }
     var content = qs.stringify(data);  
     console.log(data);
@@ -116,15 +118,15 @@ function upstate(o) {
 
 };
 
-function update_thread(o) {
-    setImmediate(upstate, o);
+function update_thread() {
+    setImmediate(upstate);
 }
 
 module.exports.run = function (ip,port) {
     m_centerIP = ip;
     m_centerPort = port;
     //上传状态定时器
-    setInterval(update_thread, 60000, this);
+    setInterval(update_thread, 60000);
 };
 
 console.log('run state.js');
