@@ -119,10 +119,10 @@ app.get('/imageServer/image', function (req, res) {
    var szYearMonth = twostr[1].slice(0,6);
    var szDay = twostr[1].slice(6,8);
    var szMD5 = twostr[1].slice(8);
-   var strPicPath = config.rootPath + "\\images\\" + szType + "\\" + szYearMonth + "\\" + szYearMonth + szDay + "\\";
+   var strPicPath = config.rootPath + "/images/" + szType + "/" + szYearMonth + "/" + szYearMonth + szDay + "/";
    for (var m=0; m<5; ++m)
     {
-      strPicPath = strPicPath + szMD5[m] + "\\";
+      strPicPath = strPicPath + szMD5[m] + "/";
     }
     strPicPath += req.query.name;
    //log.info(strPicPath);
