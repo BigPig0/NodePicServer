@@ -31,7 +31,7 @@ module.exports = {
     add_get     : ()=>{ ++m_nGetNum; },
     add_get_ok  : ()=>{ ++m_nGetSuccess; },
     //推送图片请求统计
-    add_post    : ()=>{ ++m_nPostNum; m_lastPostTime = moment().format('HH:mm:ss');},
+    add_post    : ()=>{ ++m_nPostNum; m_lastPostTime = moment().format('YYYY-MM-DD HH:mm:ss');},
     add_post_ok : ()=>{ ++m_nPostSuccess; },
     //写入成功的图片统计
     add_pic     : (bytes)=>{++m_nPicNum; m_nPicBytes += bytes; },
@@ -87,6 +87,7 @@ function upstate() {
     }
     var content = qs.stringify(data);  
     console.log(data);
+    console.log(filestate);
     
     var options = {  
         hostname: m_centerIP,  

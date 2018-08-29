@@ -26,6 +26,7 @@ log.setPath(logPath);
 
 //加载磁盘信息统计模块
 diskinfo.set_disk_path(config.rootPath);
+filemgr.SetRoot(config.rootPath);
 
 //加载状态统计模块
 state.set_server_info('-',config.port);
@@ -88,6 +89,9 @@ app.post('/imageServer/image', function(req, res) {
   
     var suffix = name.split(".")[1];
     var file_name = type_folder + "_" + ymd + md5 + '.' + suffix;
+
+    var status = filemgr.get_state();
+    res.setHeader('SerBufLen', ''+status.buff_len);
     res.send(file_name);       //应答返回文件名称
     state.add_post_ok();       //上传成功数
   
@@ -95,7 +99,7 @@ app.post('/imageServer/image', function(req, res) {
     path = path + file_name;
     //log.info("save file %s", path);
     var task = { path : path, data : picData };
-    filemgr.save_pic(task);
+    filemgr.save_pic(file_name, task);
   });
 });
 
@@ -107,33 +111,28 @@ app.get('/imageServer/image', function (req, res) {
    if(!name) {
      res.status(400).send("not found");
      log.error('错误的图片名称 %s',req.originalUrl)
+	 return;
    }
-   var twostr = name.split('_');
-   if(twostr.length != 2 || twostr[1].length < 13) {
-     res.status(400).send("not found");
-     log.warn('错误的图片名称 %s',req.originalUrl);
-     return;
-   }
-
-   var szType = twostr[0];
-   var szYearMonth = twostr[1].slice(0,6);
-   var szDay = twostr[1].slice(6,8);
-   var szMD5 = twostr[1].slice(8);
-   var strPicPath = config.rootPath + "/images/" + szType + "/" + szYearMonth + "/" + szYearMonth + szDay + "/";
-   for (var m=0; m<5; ++m)
-    {
-      strPicPath = strPicPath + szMD5[m] + "/";
-    }
-    strPicPath += req.query.name;
-   //log.info(strPicPath);
-   if (fs.existsSync(strPicPath)) {
-      //res.header('Cache-Control','no-store');
-      res.sendFile(strPicPath);
-      state.add_get_ok();
-   } else {
-      res.status(400).send("not found");
+   
+   
+   filemgr.get_pic(name, function(find, data){
+     if(find) {
+       res.setHeader('Content-Type','image/jpeg');
+       res.send(data);
+       state.add_get_ok();
+     } else {
+      res.status(400).send(data);
       log.error('图片不存在 %s',req.originalUrl);
-   }
+     }
+   });
+
+});
+
+/** 图片服务器心跳，可用于获取服务器状态 */
+app.get('/imageServer/pingpong', function (req, res){
+    var status = filemgr.get_state();
+    res.setHeader('SerBufLen', ''+status.buff_len);
+    res.send('pingpong');
 });
 
 
