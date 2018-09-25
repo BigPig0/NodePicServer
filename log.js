@@ -21,10 +21,9 @@ function init(logPath) {
         backups:100
         },
         errfile : {          //错误信息文件输出
-        type: 'dateFile',
+        type: 'file',
         filename: errlogPath,
-        alwaysIncludePattern: true,
-        pattern: '-yyyy-MM-dd.txt',
+        maxLogSize: 1024*1024*10,
         backups:10
         }
     },
