@@ -1,0 +1,34 @@
+{
+    "apps": [
+      {
+        "name": "8080",
+        "cwd": "./",
+        "script": "index.js",
+        "args": "8080",
+        "log_date_format": "YYYY-MM-DD HH:mm Z",
+        "error_file": "logs/8080/node-app.stderr.log",
+        "out_file": "logs/8080/node-app.stdout.log",
+        "pid_file": "logs/8080/node-geo-api.pid",
+        "watch": false,
+        "exec_interpreter": "node",
+        "exec_mode": "fork",
+        "autorestart": true,
+        "vizion": false
+      },
+      {
+        "name": "9080",
+        "cwd": "./",
+        "script": "index.js",
+        "args": "9080",
+        "log_date_format": "YYYY-MM-DD HH:mm Z",
+        "error_file": "logs/8080/node-app.stderr.log",
+        "out_file": "logs/8080/node-app.stdout.log",
+        "pid_file": "logs/8080/node-geo-api.pid",
+        "watch": false,
+        "exec_interpreter": "node",
+        "exec_mode": "fork",
+        "autorestart": true,
+        "vizion": false
+      }
+    ]
+  }
