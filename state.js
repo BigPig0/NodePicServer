@@ -62,7 +62,7 @@ function upstate() {
     }
 
     //存储盘空间大小
-    var diskstate = diskinfo.get_disk_info();
+    var diskstate = diskinfo.get_disk_info(true);
     //文件保存状态
     var filestate = filemgr.get_state();
 

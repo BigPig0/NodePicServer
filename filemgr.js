@@ -15,8 +15,8 @@ var m_picReadKey = new List();  //已读取图片缓存的名称
 
 var m_nPicSavMax = 50;     //同时写入的最大图片数
 var m_nPicBuffNum = 5000;  //允许缓存的最大图片数
-var m_nPicWriteBuffNum = 5000; //写缓存最大图片数
-var m_nPicReadBuffNum = 5000; //读缓存最大图片数
+var m_nPicWriteBuffNum = 10000; //写缓存最大图片数
+var m_nPicReadBuffNum = 10000; //读缓存最大图片数
 
 var m_nSavingNum = 0;      //正在执行的图片保存任务数
 var m_lastSaveTime = 0;    //最后一次保存图片的时间
