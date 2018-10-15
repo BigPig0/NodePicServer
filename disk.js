@@ -23,8 +23,9 @@ module.exports.set_disk_path = function (disk_path) {
     checkDiskInfo();
 };
 
-module.exports.get_disk_info = function () {
-    setImmediate(checkDiskInfo); //重新获取磁盘信息
+module.exports.get_disk_info = function (check) {
+    if(check)
+        setImmediate(checkDiskInfo); //重新获取磁盘信息
     return {
         free_bytes : m_nFreeBytes,
         total_bytes : m_nTotalBytes

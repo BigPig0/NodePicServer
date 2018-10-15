@@ -99,7 +99,8 @@ app.post('/imageServer/image', function(req, res) {
     _index += 1;
 
     var status = filemgr.get_state();
-    res.setHeader('SerBufLen', ''+status.buff_len);
+    res.setHeader('serverBufLen', ''+status.buff_len);
+    res.setHeader('freeSpace', '' + diskinfo.get_disk_info(false).free_bytes);
     res.send(file_name);       //应答返回文件名称
     state.add_post_ok();       //上传成功数
   
@@ -139,7 +140,8 @@ app.get('/imageServer/image', function (req, res) {
 /** 图片服务器心跳，可用于获取服务器状态 */
 app.get('/imageServer/pingpong', function (req, res){
     var status = filemgr.get_state();
-    res.setHeader('SerBufLen', ''+status.buff_len);
+    res.setHeader('SerBufLen', '' + status.buff_len);
+    res.setHeader('freeSpace', '' + diskinfo.get_disk_info(false).free_bytes);
     res.send('pingpong');
 });
 

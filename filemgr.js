@@ -1,4 +1,4 @@
-﻿var path = require("path");
+var path = require("path");
 var fs = require("fs");
 var moment = require('moment');
 var log = require('./log');
