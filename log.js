@@ -8,7 +8,7 @@ var is_init = false;
 //日志模块
 function init(logPath) {
     var infologPath = logPath + '/log.txt';
-    var errlogPath = logPath + '/err';
+    var errlogPath = logPath + '/err.txt';
     log4js.configure({
     appenders: {
         console : {          //控制台输出
@@ -64,6 +64,10 @@ module.exports.error = (message, ...args)=> {
     console.error(message, args);
     logger.error(message, args);
     logerror.error(message, args);
+}
+
+module.exports.connectLogger = (message, ...args)=> {
+    return log4js.connectLogger(logger, {level:log4js.levels.INFO});
 }
 
 console.log('run log.js');

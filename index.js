@@ -37,11 +37,13 @@ if(config.centerIP != null) {
 //启动http服务器
 var app = express();
 
-//app.use(log4js.connectLogger(logger, {level:log4js.levels.INFO}));
+app.use(log.connectLogger());
 app.use(bp.raw());
 app.use(bp.json());
 app.use(bp.urlencoded({extended:false}));
 
+var _hms = "";
+var _index = 0;
 /** 图片上传请求 */
 app.post('/imageServer/image', function(req, res) {
   //log.info(req.originalUrl);
@@ -80,6 +82,11 @@ app.post('/imageServer/image', function(req, res) {
     var today = moment();
     var ym = today.format('YYYYMM');
     var ymd = today.format('YYYYMMDD');
+    var hms = today.format('HHmmss');
+    if(_hms != hms) {
+      _hms = hms;
+      _index = 0;
+    }
     var type_folder = type=='1'?'violation':'record';
     var path = config.rootPath + '\\images\\' + type_folder + '\\' + ym + '\\' + ymd + '\\';
     for (var m=0; m<5; ++m)
@@ -88,7 +95,8 @@ app.post('/imageServer/image', function(req, res) {
     }
   
     var suffix = name.split(".")[1];
-    var file_name = type_folder + "_" + ymd + md5 + '.' + suffix;
+    var file_name = type_folder + "_" + ymd + md5 +'[' + _hms + '_' + _index + '].' + suffix;
+    _index += 1;
 
     var status = filemgr.get_state();
     res.setHeader('SerBufLen', ''+status.buff_len);
@@ -97,7 +105,7 @@ app.post('/imageServer/image', function(req, res) {
   
     filemgr.mkdirsSync(path);
     path = path + file_name;
-    //log.info("save file %s", path);
+    log.info("save file %s", path);
     var task = { path : path, data : picData };
     filemgr.save_pic(file_name, task);
   });

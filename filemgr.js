@@ -1,4 +1,4 @@
-var path = require("path");
+﻿var path = require("path");
 var fs = require("fs");
 var moment = require('moment');
 var log = require('./log');
@@ -15,8 +15,8 @@ var m_picReadKey = new List();  //已读取图片缓存的名称
 
 var m_nPicSavMax = 50;     //同时写入的最大图片数
 var m_nPicBuffNum = 5000;  //允许缓存的最大图片数
-var m_nPicWriteBuffNum = 5000; //写缓存最大图片数
-var m_nPicReadBuffNum = 5000; //读缓存最大图片数
+var m_nPicWriteBuffNum = 500; //写缓存最大图片数
+var m_nPicReadBuffNum = 500; //读缓存最大图片数
 
 var m_nSavingNum = 0;      //正在执行的图片保存任务数
 var m_lastSaveTime = 0;    //最后一次保存图片的时间
@@ -111,7 +111,7 @@ function getpic(file_name, sendCB) {
     if(m_picBuff.has(file_name)) {
         let task = m_picBuff.get(file_name);
         if(task) {
-            log.info('m_picBuff hit');
+            //log.info('m_picBuff hit');
             t_picBuff_hit++;
             sendCB(true, task.data);
             return;
@@ -120,7 +120,7 @@ function getpic(file_name, sendCB) {
     if(m_picWritingBuff.has(file_name)) {
         let task = m_picWritingBuff.get(file_name);
         if(task) {
-            log.info('m_picWritingBuff hit');
+            //log.info('m_picWritingBuff hit');
             t_writingBuff_hit++;
             sendCB(true, task.data);
             return;
@@ -138,7 +138,7 @@ function getpic(file_name, sendCB) {
     if(m_picReadBuff.has(file_name)) {
         let task = m_picReadBuff.get(file_name);
         if(task) {
-            log.info('m_picReadBuff hit');
+            //log.info('m_picReadBuff hit');
             t_readBuff_hit++
             sendCB(true, task.data);
             return;
