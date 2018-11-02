@@ -146,7 +146,7 @@ function getpic(file_name, sendCB) {
     }
     //不在缓存中，从磁盘读取文件
     var twostr = file_name.split('_');
-    if(twostr.length != 2 || twostr[1].length < 13) {
+    if(twostr.length < 2 || twostr[1].length < 13) {
         log.warn('错误的图片名称 %s',file_name);
         sendCB(false, 'error pic name');
         return;
