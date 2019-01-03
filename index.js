@@ -49,6 +49,12 @@ app.post('/imageServer/image', function(req, res) {
   //log.info(req.originalUrl);
   state.add_post();
 
+  if(!req.headers["content-length"]){
+    log.error("image size is 0");
+    res.status(400).send("image size is 0");
+    return;
+  }
+
   //检查能否保存图片
   if(pro.is_stop()) {
     res.status(400).send(err);
@@ -75,6 +81,11 @@ app.post('/imageServer/image', function(req, res) {
   });
   req.on('end', function () {
     var picData = Buffer.concat(reqData, size);
+    if(size == 0){
+      log.error("image size is 0");
+      res.status(400).send("image size is 0");
+      return;
+    }
     //保存图片内容
     var name = req.query.name;
     var type = req.query.type;
