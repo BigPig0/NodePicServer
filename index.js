@@ -197,5 +197,6 @@ var server = app.listen(config.port, function () {
  
 });
 server.setTimeout(0);
+server.keepAliveTimeout=0;
 
 console.log('run index.js');
