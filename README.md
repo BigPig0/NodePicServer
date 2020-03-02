@@ -9,13 +9,16 @@
 
 #### 安装教程
 
-1. xxxx
-2. xxxx
-3. xxxx
+1. 安装nodejs
+2. 将NodePicServer.zip解压到C:\NodePicServer
+3. 将npm.zip解压到C:\Users\Administrator\AppData\Roaming\npm
+4. 修改配置文件，每运行一个实例需要一个配置，文件名任意，如8080.js。里面的内容主要是监听端口和图片存储路径
+5. 修改pm2配置start.json，每运行一个实例，需要在apps后面的数组里面增加一个{}，多个配置以','分隔，里面要修改name和args，值就用上一步的配置文件的名称
+6. 执行install.bat，会提示输入y/n，填写n回车。程序不会自动退出，任务管理器看下进程，启动好了就关掉这个窗口。
 
 #### 使用说明
 
-1. xxxx
+1. 安装nodejs
 2. xxxx
 3. xxxx
 
