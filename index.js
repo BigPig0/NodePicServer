@@ -99,13 +99,14 @@ app.post('/imageServer/image', function(req, res) {
       _index = 0;
     }
     var type_folder = type=='1'?'violation':'record';
-    var path = config.rootPath + '\\images\\' + type_folder + '\\' + ym + '\\' + ymd + '\\';
+    var path = config.rootPath + '/images/' + type_folder + '/' + ym + '/' + ymd + '/';
     for (var m=0; m<5; ++m)
     {
-      path = path + md5[m] + "\\";
+      path = path + md5[m] + "/";
     }
   
-    var suffix = name.split(".")[1];
+    var index = name.lastIndexOf(".");
+    var suffix = name.substr(index+1);
     var file_name = type_folder + "_" + ymd + md5 +'[' + _hms + '_' + _index + '].' + suffix;
     _index += 1;
 

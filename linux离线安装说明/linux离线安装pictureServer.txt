@@ -1,0 +1,54 @@
+将文件上传到服务器，进入存放压缩包的路径
+
+解压
+
+xz -d node-v12.18.0-linux-x64.tar.xz
+
+tar xvf node-v12.18.0-linux-x64.tar
+tar -xzvf pm2.tar.gz
+tar -xzvf nodePicture.tar.gz
+
+
+移动到 /usr/local/ 下
+
+mv node-v12.18.0-linux-x64 /usr/local/nodejs
+
+mv pm2 /usr/local/nodejs/lib/node_modules/
+mv NodePicture /root/
+
+创建连接
+ln -s /usr/local/nodejs/bin/node /usr/local/bin/node
+
+
+ln -s /usr/local/nodejs/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+ln -s /usr/local/nodejs/lib/node_modules/pm2/bin/pm2 /usr/local/bin/pm2
+
+
+验证
+
+node -v
+
+npm -v
+pm2 -v
+
+进入/root/NodePicture
+修改start.json,这里面配置启动几个服务，修改‘name','args','error_file','out_file','pid_file'这几项里面的数字，这个值是服务准备使用的端口号。
+修改以'端口号.js'格式命名的服务配置文件(60070.js,60080.js),文件名需要与start.json里面对应。里面有4个参数：
+port，监听的端口，与文件名保持一致
+rootPath, 图片保存的位置
+centerIP,centerPort, 配置图片统计服务的地址。如果没有这两项，那么启动的服务本身就是统计服务，而不是存储服务，这是rootPath是web文件夹的路径(例如60070.js)
+
+在/root/NodePicture路径执行
+pm2 start start.json
+
+
+查看服务运行状态
+pm2 list
+pm2 monit
+pm2 show [name], name就是start.json里面配置的name，pm2 list查看的时候也有显示。
+
+
+开机自启动
+pm2 save, 这一条用来将当前配置的服务保存下来，这样自动启动时才知道要启动哪些服务。一定要在服务处于运行状态时执行。
+pm2 startup，建立一个自启动的服务
+不一定必然成功，所以需要重启验证。如果失败了，可以重新尝试。
