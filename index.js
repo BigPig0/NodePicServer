@@ -2,10 +2,11 @@
 var bp      = require('body-parser');
 var fs      = require("fs");
 var path    = require("path");
-var md5tool =require("md5");
+var md5tool = require("md5");
 var qs      = require('querystring');
 var os      = require('os');
 var moment  = require('moment');
+var mime    = require("mime")
 
 var log      = require('./log');
 var filemgr  = require('./filemgr');
@@ -135,10 +136,9 @@ app.get('/imageServer/image', function (req, res) {
 	 return;
    }
    
-   
    filemgr.get_pic(name, function(find, data){
      if(find) {
-       res.setHeader('Content-Type','image/jpeg');
+       res.setHeader('Content-Type',mime.getType(name));
        res.send(data);
        state.add_get_ok();
      } else {

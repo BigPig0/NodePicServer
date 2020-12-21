@@ -10,6 +10,7 @@
     "fs": "0.0.1-security",
     "log4js": "^3.0.6",
     "md5": "^2.2.1",
+    "mime": "^2.4.7",
     "moment": "^2.26.0"
   },
   "devDependencies": {},
