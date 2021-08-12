@@ -139,6 +139,7 @@ app.get('/imageServer/image', function (req, res) {
    filemgr.get_pic(name, function(find, data){
      if(find) {
        res.setHeader('Content-Type',mime.getType(name));
+	   res.setHeader('Access-Control-Allow-Origin','*');
        res.send(data);
        state.add_get_ok();
      } else {
