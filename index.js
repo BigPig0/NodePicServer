@@ -28,9 +28,13 @@ log.setPath(logPath);
 //加载磁盘信息统计模块
 diskinfo.set_disk_path(config.rootPath);
 filemgr.SetRoot(config.rootPath);
+if(config.saveDuration != null || config.savePath != null) {
+  //配置中有清理文件参数，需要启动过期文件清理任务
+  filemgr.run(config.saveDuration, config.savePath);
+}
 
 //加载状态统计模块
-state.set_server_info('-',config.port);
+state.set_server_info('-', config.port);
 if(config.centerIP != null) {
   state.run(config.centerIP, config.centerPort);
 }
@@ -187,18 +191,41 @@ app.get('/imageCenter/display',function (req, res) {
     res.header("Access-Control-Allow-Origin", "*");
     res.status(200).send(data);
 });
- 
-var server = app.listen(config.port, function () {
- 
-  var host = server.address().address;
-  var port = server.address().port;
-  state.server_ip = host;
-  state.server_port = port;
- 
-  console.log("应用实例，访问地址为 http://%s:%s", host, port)
- 
+
+/** 图片删除请求 */
+app.delete('/imageServer/image', function (req, res) {
+  //log.info(req.originalUrl);
+  var name = req.query.name;
+  if(!name) {
+    res.status(400).send("not found");
+    log.error('错误的图片名称 %s',req.originalUrl)
+    return;
+  }
+  
+  filemgr.del_pic(name, function(find, data){
+    res.setHeader('Access-Control-Allow-Origin','*');
+    if(find) {
+      res.send("OK");
+    } else {
+      res.status(400).send(data);
+      log.error('删除图片错误 %s',req.originalUrl);
+    }
+  });
+
 });
-server.setTimeout(0);
-server.keepAliveTimeout=0;
+ 
+if(config.port != null) {
+  // 配置了监听端口，需要启动http服务器
+  var server = app.listen(config.port, function () {
+    var host = server.address().address;
+    var port = server.address().port;
+    state.server_ip = host;
+    state.server_port = port;
+  
+    console.log("应用实例，访问地址为 http://%s:%s", host, port)
+  });
+  server.setTimeout(0);
+  server.keepAliveTimeout=0;
+}
 
 console.log('run index.js');

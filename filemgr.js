@@ -23,6 +23,9 @@ var m_lastSaveTime = 0;    //最后一次保存图片的时间
 
 var m_rootPath;            //图片保存位置
 
+var saveDuration = 0;      //文件保存天数，超过这个时间的文件应当被清理
+var savePath = null;       //指定文件保存位置，该路径下应当是YYYYMM格式的文件夹
+
 //测试
 var t_picBuff_hit = 0;
 var t_writingBuff_hit = 0;
@@ -195,6 +198,50 @@ function getpic(file_name, sendCB) {
 }
 module.exports.get_pic = getpic;
 
+//删除指定图片
+function delpic(file_name, delCB) {
+    //删除磁盘中的文件
+    var twostr = file_name.split('_');
+    if(twostr.length < 2 || twostr[1].length < 13) {
+        log.warn('错误的图片名称 %s',file_name);
+        sendCB(false, 'error pic name');
+        return;
+    }
+
+    var szType = twostr[0];
+    var szYearMonth = twostr[1].slice(0,6);
+    var szDay = twostr[1].slice(6,8);
+    var szMD5 = twostr[1].slice(8);
+    var strPicPath = m_rootPath + "/images/" + szType + "/" + szYearMonth + "/" + szYearMonth + szDay + "/";
+    for (var m=0; m<5; ++m)
+    {
+        strPicPath = strPicPath + szMD5[m] + "/";
+    }
+    strPicPath += file_name;
+    //log.info(strPicPath);
+    if (fs.existsSync(strPicPath)) {
+        try{
+            fs.unlink(strPicPath, function(err){
+                if(err) {
+                    log.error('删除图片错误 %s',err.message);
+                    delCB(false, err.message);
+                } else {
+                    delCB(true);
+                }
+            });
+        } catch (e) {
+            log.error('删除图片错误捕获');
+            delCB(false, 'err when read pic');
+        }
+        return;
+    } else {
+        //res.status(400).send("not found");
+        delCB(false, "not found");
+        log.error('图片不存在 %s',file_name);
+    }
+}
+module.exports.del_pic = delpic;
+
 //检查能否处理上传图片请求
 module.exports.add_state = function (err) {
     //未处理完成的任务数
@@ -239,4 +286,83 @@ module.exports.finish_all_buff = function () {
     }
 };
 
+//定时删除超出保存时间的图片
+
+function deleteFolder(path) {
+    var files = [];
+    if( fs.existsSync(path) ) {
+        files = fs.readdirSync(path);
+        files.forEach(function(file,index){
+            var curPath = path + "/" + file;
+            if(fs.statSync(curPath).isDirectory()) { // recurse
+                deleteFolder(curPath);
+            } else { // delete file
+                fs.unlinkSync(curPath);
+                log.info("delete file : " + curPath);
+            }
+        });
+        fs.rmdirSync(path);
+        log.info("delete dir : " + path);
+    }
+}
+
+function clean_task() {
+    //当前时间
+    var today = moment();
+    //扫描目录下年月文件夹
+    var ym_files = fs.readdirSync(savePath);
+    for(var i=0; i<ym_files.length; i++) {
+        ym_file = ym_files[i];
+        var ym_path = savePath + '/' + ym_file;
+        var ym_stats = fs.statSync(ym_path);
+        if(ym_stats.isDirectory()){
+            //ym_file文件名必须是yyyymm
+            var dir_date = moment(ym_file+'01', 'YYYYMMDD');
+            if(today.diff(dir_date, 'days') > saveDuration) {
+                //该文件夹下可能会有过期的文件
+                var ymd_files = fs.readdirSync(ym_path);
+                if(ymd_files.length > 0) {
+                    for(var j=0; j<ymd_files.length; j++) {
+                        ymd_file = ymd_files[j];
+                        var ymd_path = ym_path + '/' + ymd_file;
+                        var ymd_stats = fs.statSync(ymd_path);
+                        if(ymd_stats.isDirectory()){
+                            //ymd_file文件名必须是yyyymmdd
+                            var ymd_dir_date = moment(ymd_file, 'YYYYMMDD');
+                            if(today.diff(ymd_dir_date, 'days') > saveDuration) {
+                                //该文件夹已经超时，可以全部递归删除
+                                deleteFolder(ymd_path);
+                            }
+                        } else {
+                            //ym文件夹下的文件全部删除
+                            fs.unlinkSync(ymd_path);
+                            log.info("delete file : " + ymd_path);
+                        }
+                    }
+                } else {
+                    //ym文件夹下没有文件，删除ym文件夹
+                    fs.rmdirSync(ym_path);
+                    log.info("delete dir : " + ym_path);
+                }
+            }//if(today.diff(dir_date, 'days') > saveDuration) 
+        }//if(ym_stats.isDirectory())
+    }//for(var i=0; i<ym_files.length, i++)
+}
+
+function clean_thread() {
+    try {
+        // 这个函数里面全部以同步方式执行
+        clean_task();
+    } catch (e) {
+        log.error('删除图片异常');
+    }
+    setImmediate(clean_thread);
+}
+
+module.exports.run = function (_duration, _path) {
+    saveDuration = _duration;
+    savePath = _path;
+    //删除任务
+    setImmediate(clean_thread);
+};
 console.log('run filemgr.js');
